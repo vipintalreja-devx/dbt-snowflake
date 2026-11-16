@@ -1,0 +1,39 @@
+# dbt job definitions (dbt Cloud / Airflow / Cloud Composer / Workflows style)
+jobs:
+  - name: hourly_incremental
+    schedule: "0 * * * *"
+    steps:
+      - dbt run --selector hourly_incremental
+      - dbt test --select tag:marts,config.materialized:incremental
+
+  - name: nightly_full
+    schedule: "30 1 * * *"
+    steps:
+      - dbt source freshness
+      - dbt seed
+      - dbt snapshot
+      - dbt build --selector nightly
+      - dbt run-operation unload_to_stage --args '{relation: "analytics_marts.dim_subscriber", bucket: "telco-unload", path: "dim_subscriber"}'
+
+  - name: weekly_full_refresh
+    schedule: "0 3 * * 0"
+    steps:
+      - dbt run --full-refresh --select int_cdr_enriched+ --vars '{lookback_days: 30}'
+
+  # python_models job removed: churn_score is now SQL
+
+  - name: docs
+    schedule: "0 6 * * 1"
+    steps:
+      - dbt docs generate
+
+  - name: dev_refresh
+    trigger: manual
+    steps:
+      - dbt run-operation clone_prod_to_dev
+      - dbt run-operation purge_old_dev_schemas --args '{days: 7}'
+
+  - name: change_history_setup
+    trigger: manual
+    steps:
+      - dbt run-operation enable_change_history

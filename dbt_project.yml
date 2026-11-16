@@ -1,0 +1,54 @@
+name: telco
+version: '1.0.0'
+config-version: 2
+profile: telco
+
+model-paths: [models]
+macro-paths: [macros]
+seed-paths: [seeds]
+snapshot-paths: [snapshots]
+test-paths: [tests]
+
+vars:
+  start_date: '2024-01-01'
+  tz: 'Asia/Kolkata'
+  high_value_threshold: 1000
+  lookback_days: 3
+
+# replaces Snowflake query_tag: adds dbt metadata as BigQuery job labels
+query-comment:
+  comment: "dbt telco {{ target.name }}"
+  job-label: true
+
+on-run-end:
+  - "{{ log_run_results(results) }}"
+
+models:
+  telco:
+    +labels: {app: dbt, project: telco}
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags: ['staging']
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+      +tags: ['intermediate']
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags: ['marts']
+      +grants:
+        roles/bigquery.dataViewer: ['group:analysts@example.com']
+    reports:
+      +materialized: table
+      +schema: reports
+      +tags: ['reports']
+
+seeds:
+  telco:
+    +schema: seeds
+
+snapshots:
+  telco:
+    +target_schema: snapshots

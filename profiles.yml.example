@@ -1,0 +1,22 @@
+telco:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('GCP_PROJECT_DEV') }}"
+      dataset: dbt_{{ env_var('DBT_USER', 'dev') }}
+      location: asia-south1
+      threads: 4
+      priority: interactive
+      job_execution_timeout_seconds: 600
+      maximum_bytes_billed: 50000000000
+    prod:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT_PROD') }}"
+      dataset: analytics
+      location: asia-south1
+      keyfile: "{{ env_var('GCP_KEYFILE') }}"
+      threads: 8
+      priority: interactive

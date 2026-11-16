@@ -1,0 +1,22 @@
+selectors:
+  - name: nightly
+    description: Full nightly build of marts and reports
+    definition:
+      union:
+        - method: tag
+          value: marts
+        - method: tag
+          value: reports
+  - name: hourly_incremental
+    definition:
+      intersection:
+        - method: config.materialized
+          value: incremental
+        - exclude:
+            - method: tag
+              value: heavy
+  - name: ci_slim
+    definition:
+      method: state
+      value: modified
+      children: true

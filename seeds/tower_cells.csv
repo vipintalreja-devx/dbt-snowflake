@@ -1,0 +1,9 @@
+cell_id,city,region,tech,lat,lon
+C001,Mumbai,West,5G,19.0760,72.8777
+C002,Delhi,North,5G,28.7041,77.1025
+C003,Bengaluru,South,4G,12.9716,77.5946
+C004,Chennai,South,4G,13.0827,80.2707
+C005,Kolkata,East,4G,22.5726,88.3639
+C006,Pune,West,5G,18.5204,73.8567
+C007,Jaipur,North,3G,26.9124,75.7873
+C008,Hyderabad,South,5G,17.3850,78.4867
