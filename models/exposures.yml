@@ -1,0 +1,20 @@
+version: 2
+
+exposures:
+  - name: churn_dashboard
+    type: dashboard
+    maturity: high
+    url: https://bi.example.com/churn
+    owner:
+      name: Data Science
+      email: ds@example.com
+    depends_on:
+      - ref('fct_churn_features')
+      - ref('churn_score')
+  - name: arpu_report
+    type: analysis
+    owner:
+      name: Finance
+      email: finance@example.com
+    depends_on:
+      - ref('rpt_arpu_by_plan')

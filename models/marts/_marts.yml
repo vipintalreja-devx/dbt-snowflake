@@ -1,0 +1,63 @@
+version: 2
+
+models:
+  - name: dim_subscriber
+    description: One row per current subscriber
+    config:
+      contract:
+        enforced: false
+    columns:
+      - name: subscriber_id
+        tests: [not_null, unique]
+      - name: msisdn
+        tests:
+          - valid_msisdn
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['ACTIVE', 'SUSPENDED', 'CHURNED']
+      - name: plan_id
+        tests:
+          - relationships:
+              to: ref('dim_plan')
+              field: plan_id
+
+  - name: dim_plan
+    columns:
+      - name: plan_id
+        tests: [not_null, unique]
+      - name: monthly_fee
+        tests: [positive_value]
+
+  - name: fct_usage_daily
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [msisdn, usage_date]
+    columns:
+      - name: data_mb
+        tests: [positive_value]
+      - name: usage_date
+        tests:
+          - fresh_within_hours:
+              hours: 48
+
+  - name: fct_billing
+    columns:
+      - name: invoice_id
+        tests: [not_null, unique]
+      - name: aging_bucket
+        tests:
+          - accepted_values:
+              values: ['PAID', 'CURRENT', '30-60', '60+']
+      - name: total
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+
+  - name: fct_churn_features
+    meta:
+      owner: data-science
+      pii: false
+
+  - name: churn_score
+    description: Python (Snowpark) model producing churn score 0-1

@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: raw
+    database: "{{ target.database }}"
+    schema: RAW
+    loader: snowpipe
+    freshness:
+      warn_after: {count: 6, period: hour}
+      error_after: {count: 24, period: hour}
+    loaded_at_field: loaded_at
+    tables:
+      - name: cdr
+        description: Call detail records landed by Snowpipe (voice, sms, data)
+        columns:
+          - name: cdr_id
+            tests: [not_null]
+      - name: subscribers
+        loaded_at_field: updated_at
+      - name: plans
+        freshness: null
+      - name: invoices
+        loaded_at_field: updated_at
+      - name: payments
+      - name: network_events
+        loaded_at_field: event_ts
+      - name: tickets
+        loaded_at_field: opened_at

@@ -1,0 +1,10 @@
+version: 2
+
+seeds:
+  - name: tower_cells
+    config:
+      column_types:
+        cell_id: varchar(10)
+        lat: number(9,6)
+        lon: number(9,6)
+      quote_columns: false

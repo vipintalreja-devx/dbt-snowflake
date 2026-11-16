@@ -1,0 +1,25 @@
+telco:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_KEY_PATH') }}"
+      role: TRANSFORMER_DEV
+      database: TELCO_DEV
+      warehouse: TRANSFORM_WH_XS
+      schema: dbt_{{ env_var('DBT_USER', 'dev') }}
+      threads: 4
+      client_session_keep_alive: false
+      query_tag: dbt_dev
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_KEY_PATH') }}"
+      role: TRANSFORMER
+      database: TELCO_PROD
+      warehouse: TRANSFORM_WH
+      schema: analytics
+      threads: 8

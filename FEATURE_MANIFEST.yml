@@ -1,0 +1,45 @@
+# Answer key for testing a Snowflake -> BigQuery translation agent.
+# Each entry: Snowflake feature, where it lives, BigQuery handling.
+features:
+  - {feature: "VARIANT path (col:a.b::type)",       file: models/staging/stg_cdr.sql,                    bq: "JSON_VALUE / JSON_QUERY"}
+  - {feature: "LATERAL FLATTEN (outer => true)",    file: models/staging/stg_network_events.sql,         bq: "UNNEST(JSON_QUERY_ARRAY()) with LEFT JOIN"}
+  - {feature: "TABLE(FLATTEN()) + index",           file: models/intermediate/int_invoice_lines.sql,    bq: "UNNEST ... WITH OFFSET"}
+  - {feature: "TRY_TO_TIMESTAMP_NTZ w/ format",     file: models/staging/stg_cdr.sql,                    bq: "SAFE.PARSE_DATETIME (format codes differ)"}
+  - {feature: "ZEROIFNULL, IFF, DIV0NULL",          file: macros/utils.sql,                              bq: "IFNULL(x,0), IF, SAFE_DIVIDE"}
+  - {feature: "REGEXP_SUBSTR with 'e' group arg",   file: models/staging/stg_cdr.sql,                    bq: "REGEXP_EXTRACT (no position/occurrence args)"}
+  - {feature: "DATEDIFF(unit, a, b)",               file: models/staging/stg_subscribers.sql,            bq: "DATE_DIFF(b, a, unit) - argument order flips"}
+  - {feature: "CONVERT_TIMEZONE",                   file: macros/utils.sql,                              bq: "DATETIME(TIMESTAMP(x,'UTC'), tz)"}
+  - {feature: "QUALIFY + ROW_NUMBER",               file: models/intermediate/int_cdr_enriched.sql,      bq: "QUALIFY supported"}
+  - {feature: "MATCH_RECOGNIZE",                    file: models/intermediate/int_roaming_sessions.sql, bq: "No equivalent - rewrite with window functions (gaps and islands)"}
+  - {feature: "CONDITIONAL_CHANGE_EVENT",           file: models/intermediate/int_subscriber_plan_history.sql, bq: "SUM(CASE WHEN col != LAG(col)) OVER"}
+  - {feature: "cluster_by config",                  file: models/intermediate/int_cdr_enriched.sql,      bq: "cluster_by + partition_by"}
+  - {feature: "merge incremental + merge_exclude_columns", file: models/marts/fct_billing.sql,          bq: "merge supported; check merge_exclude_columns"}
+  - {feature: "delete+insert incremental",          file: models/marts/fct_usage_daily.sql,             bq: "Not supported in dbt-bigquery - use insert_overwrite or merge"}
+  - {feature: "snowflake_warehouse config",         file: models/marts/fct_usage_daily.sql,             bq: "Remove"}
+  - {feature: "dynamic_table materialization",      file: models/marts/dt_realtime_usage.sql,           bq: "Materialized view or scheduled query"}
+  - {feature: "secure view",                        file: models/marts/vw_subscriber_secure.sql,         bq: "Authorized view; is_role_in_session has no equivalent (IAM)"}
+  - {feature: "Python (Snowpark) model",           file: models/marts/churn_score.py,                   bq: "dbt Python on Dataproc/BigFrames, or rewrite in SQL"}
+  - {feature: "MEDIAN, MAX_BY, ARRAY_AGG WITHIN GROUP", file: models/marts/fct_network_quality.sql,     bq: "APPROX_QUANTILES, ARRAY_AGG(x ORDER BY ...)[OFFSET(0)]"}
+  - {feature: "APPROX_PERCENTILE",                  file: models/marts/fct_network_quality.sql,         bq: "APPROX_QUANTILES(x,100)[OFFSET(95)]"}
+  - {feature: "LISTAGG DISTINCT WITHIN GROUP",      file: models/marts/fct_churn_features.sql,           bq: "STRING_AGG(DISTINCT ...) - ordering rules differ"}
+  - {feature: "OBJECT_CONSTRUCT / ARRAY_AGG of objects", file: models/marts/fct_churn_features.sql,     bq: "STRUCT / TO_JSON / JSON_OBJECT"}
+  - {feature: "RATIO_TO_REPORT",                    file: models/marts/fct_churn_features.sql,           bq: "x / SUM(x) OVER"}
+  - {feature: "COUNT_IF, APPROX_COUNT_DISTINCT",    file: models/marts/fct_usage_daily.sql,             bq: "COUNTIF, APPROX_COUNT_DISTINCT"}
+  - {feature: "ROLLUP + GROUPING()",                file: models/reports/rpt_arpu_by_plan.sql,           bq: "ROLLUP supported; GROUPING supported"}
+  - {feature: "native PIVOT with alias list",       file: models/reports/rpt_status_pivot.sql,           bq: "PIVOT syntax differs; alias list not allowed"}
+  - {feature: "jinja-built pivot",                  file: models/reports/rpt_usage_by_type.sql,          bq: "IF() / COUNTIF"}
+  - {feature: "SAMPLE (10), TOP n, AT(OFFSET)",     file: models/reports/rpt_high_value_sample.sql,      bq: "TABLESAMPLE SYSTEM, LIMIT, FOR SYSTEM_TIME AS OF"}
+  - {feature: "GENERATOR + SEQ4 date spine",        file: macros/utils.sql,                              bq: "GENERATE_DATE_ARRAY"}
+  - {feature: "MD5_BINARY, SHA2",                   file: macros/utils.sql,                              bq: "MD5 / SHA256 return BYTES - hashes will not match Snowflake hex"}
+  - {feature: "adapter.dispatch macro",             file: macros/utils.sql,                              bq: "Add bigquery__hash_key"}
+  - {feature: "ILIKE, LAST_DAY, DAYOFWEEKISO, MONTHNAME", file: models/marts/dim_date.sql,              bq: "LOWER/LIKE, LAST_DAY, EXTRACT(ISOWEEK..), FORMAT_DATE"}
+  - {feature: "ALTER SESSION query_tag hook",       file: macros/hooks_and_ops.sql,                      bq: "Job labels"}
+  - {feature: "GRANT post-hook",                    file: macros/hooks_and_ops.sql,                      bq: "IAM / GRANT with different syntax"}
+  - {feature: "CREATE DATABASE CLONE",              file: macros/hooks_and_ops.sql,                      bq: "Dataset copy / table clone per table"}
+  - {feature: "CREATE STREAM",                      file: macros/hooks_and_ops.sql,                      bq: "CHANGES() or watermark"}
+  - {feature: "COPY INTO @stage",                   file: macros/hooks_and_ops.sql,                      bq: "EXPORT DATA to GCS"}
+  - {feature: "information_schema with ESCAPE",     file: macros/hooks_and_ops.sql,                      bq: "INFORMATION_SCHEMA.SCHEMATA, different columns"}
+  - {feature: "Snapshots (timestamp, check, hard deletes)", file: snapshots/,                            bq: "Supported by dbt-bigquery"}
+  - {feature: "Seed column_types",                  file: seeds/seeds.yml,                              bq: "varchar -> STRING, number -> NUMERIC"}
+  - {feature: "Source freshness + loader",          file: models/staging/sources.yml,                    bq: "Supported"}
+  - {feature: "Non-dbt DDL: pipe, task, stream, masking/row policy, tags, external table, MV, UDF (SQL/JS/Python), procedure, share, resource monitor", file: scripts/snowflake_setup.sql, bq: "Each needs a manual rebuild decision"}
